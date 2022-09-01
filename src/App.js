@@ -83,7 +83,12 @@ function App() {
         <img src={logo} className="App-logo" alt="logo" />
       </header>
       <KanbanBoard>
-        <KanbanColumn className="column-todo" title="待处理">
+        <KanbanColumn className="column-todo" title={
+          <>
+            待处理<button onClick={handleAdd}
+              disabled={showAdd}>&#8853; 添加新卡片</button>
+          </>
+        }>
           { showAdd && <KanbanNewCard onSubmit={handleSubmit} /> }
           { todoList.map(props => <KanbanCard {...props} />) }
         </KanbanColumn>

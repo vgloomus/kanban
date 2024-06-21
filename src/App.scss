@@ -47,47 +47,6 @@
   }
 }
 
-.kanban-board {
-  display: flex;
-  flex: 10;
-  flex-direction: row;
-  margin: 0 1rem 1rem;
-  gap: 1rem;
-}
-
-.kanban-column {
-  display: flex;
-  flex: 1 1;
-  flex-direction: column;
-  border-radius: 1rem;
-  border: 1px solid gray;
-}
-
-.kanban-column > h2 {
-  margin: 0.6rem 1rem;
-  padding-bottom: 0.6rem;
-  border-bottom: 1px solid gray;
-}
-
-.kanban-column > h2 > button {
-  float: right;
-  height: 1.8rem;
-  margin-top: 0.2rem;
-  padding: 0.2rem 0.5rem;
-  border-radius: 1rem;
-  border: 0;
-  font-size: 1rem;
-  line-height: 1rem;
-}
-
-.kanban-column > ul {
-  flex: 1;
-  flex-basis: 0;
-  overflow: auto;
-  margin: 1rem;
-  padding: 0;
-}
-
 .column-todo {
   background-color: #c9af97;
 }
@@ -98,28 +57,4 @@
 
 .column-done {
   background-color: #c0e8ba;
-}
-
-.kanban-card {
-  margin-bottom: 1rem;
-  padding: 0.6rem 1rem;
-  border-radius: 1rem;
-  border: 1px solid gray;
-  list-style: none;
-  text-align: left;
-  background-color: rgb(255 255 255 / 0.4);
-}
-
-.card-title {
-  min-height: 3rem;
-}
-
-.card-title > input[type="text"] {
-  width: 80%;
-}
-
-.card-status {
-  font-size: 0.8rem;
-  text-align: right;
-  color: #333333;
 }

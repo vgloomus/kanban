@@ -1,5 +1,5 @@
 /** @jsxImportSource @emotion/react */
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import { css } from "@emotion/react";
 
 import "./App.scss";
@@ -34,7 +34,37 @@ const kanbanCardTitleStyles = css`
   min-height: 3rem;
 `;
 
+// 看板创建时间自动更新
+const MINUTE = 60 * 1000;
+const HOUR = 60 * MINUTE;
+const DAY = 24 * HOUR;
+const UPDATE_INTERVAL = MINUTE;
+
 const KanbanCard: React.FC<Card> = ({ title, status }) => {
+  const [displayTime, setDisplayTime] = useState(status);
+  const intervalId = setInterval(updateDisplayTime, UPDATE_INTERVAL);
+
+  // 更新时间
+  function updateDisplayTime() {
+    const timePassed = new Date() - new Date(status);
+    let relativeTime = "刚刚";
+    if (MINUTE <= timePassed && timePassed < HOUR) {
+      relativeTime = `${Math.ceil(timePassed / MINUTE)} 分钟前`;
+    } else if (HOUR <= timePassed && timePassed < DAY) {
+      relativeTime = `${Math.ceil(timePassed / HOUR)} 小时前`;
+    } else if (DAY <= timePassed) {
+      relativeTime = `${Math.ceil(timePassed / DAY)} 天前`;
+    }
+    setDisplayTime(relativeTime);
+  }
+
+  useEffect(() => {
+    // 在组件首次加载时会调用，并且每分钟一次设置到displayTime上
+    updateDisplayTime();
+    // 组件被卸载清除定时器
+    clearInterval(intervalId);
+  }, [status]);
+
   return (
     <li css={kanbanCardStyles}>
       <div css={kanbanCardTitleStyles}>{title}</div>
@@ -45,7 +75,7 @@ const KanbanCard: React.FC<Card> = ({ title, status }) => {
           color: #333333;
         `}
       >
-        {status}
+        {displayTime}
       </div>
     </li>
   );
@@ -89,19 +119,19 @@ const KanbanNewCard: React.FC<KanbanNewCardProps> = ({ onSubmit }) => {
 const App: React.FC = () => {
   const [showAdd, setShowAdd] = useState(false);
   const [todoList, setTodoList] = useState<Card[]>([
-    { title: "开发任务-1", status: "22-05-22 18:15" },
-    { title: "开发任务-3", status: "22-05-22 18:15" },
-    { title: "开发任务-5", status: "22-05-22 18:15" },
-    { title: "测试任务-3", status: "22-05-22 18:15" },
+    { title: "开发任务-1", status: "2024-06-22 17:15" },
+    { title: "开发任务-3", status: "2023-05-22 18:15" },
+    { title: "开发任务-5", status: "2022-05-12 18:15" },
+    { title: "测试任务-3", status: "2022-05-24 18:15" },
   ]);
   const [ongoingList, setOngoingList] = useState<Card[]>([
-    { title: "开发任务-4", status: "22-05-22 18:15" },
-    { title: "开发任务-6", status: "22-05-22 18:15" },
-    { title: "测试任务-2", status: "22-05-22 18:15" },
+    { title: "开发任务-4", status: "2022-05-22 18:15" },
+    { title: "开发任务-6", status: "2022-05-22 18:15" },
+    { title: "测试任务-2", status: "2022-05-22 18:15" },
   ]);
   const [doneList, setDoneList] = useState<Card[]>([
-    { title: "开发任务-2", status: "22-05-22 18:15" },
-    { title: "测试任务-1", status: "22-05-22 18:15" },
+    { title: "开发任务-2", status: "2022-05-22 18:15" },
+    { title: "测试任务-1", status: "2022-05-22 18:15" },
   ]);
 
   const handleSubmit = (title: string) => {

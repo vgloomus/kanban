@@ -1,5 +1,5 @@
 /** @jsxImportSource @emotion/react */
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import { css } from "@emotion/react";
 
 import "./App.scss";
@@ -39,6 +39,8 @@ const MINUTE = 60 * 1000;
 const HOUR = 60 * MINUTE;
 const DAY = 24 * HOUR;
 const UPDATE_INTERVAL = MINUTE;
+
+const DATA_STORE_KEY = "kanban-data-store";
 
 const KanbanCard: React.FC<Card> = ({ title, status }) => {
   const [displayTime, setDisplayTime] = useState(status);
@@ -83,6 +85,11 @@ const KanbanCard: React.FC<Card> = ({ title, status }) => {
 
 const KanbanNewCard: React.FC<KanbanNewCardProps> = ({ onSubmit }) => {
   const [title, setTitle] = useState("");
+  const inputElement = useRef(null);
+
+  useEffect(() => {
+    inputElement.current.focus();
+  }, []);
 
   const handleChange = (e) => {
     setTitle(e.target.value);
@@ -110,6 +117,7 @@ const KanbanNewCard: React.FC<KanbanNewCardProps> = ({ onSubmit }) => {
           value={title}
           onChange={handleChange}
           onKeyDown={handleKeyDown}
+          ref={inputElement}
         />
       </div>
     </li>
@@ -133,6 +141,22 @@ const App: React.FC = () => {
     { title: "开发任务-2", status: "2022-05-22 18:15" },
     { title: "测试任务-1", status: "2022-05-22 18:15" },
   ]);
+  const [isLoading, setIsLoading] = useState(true);
+
+  // 读取远程数据，使用浏览器内置的 `localStorage` 本地存储API代替远程服务
+  useEffect(() => {
+    const data = window.localStorage.getItem(DATA_STORE_KEY);
+    // 模拟请求耗时，增加1秒定时器
+    setTimeout(() => {
+      if (data) {
+        const KanBanColumnData = JSON.parse(data);
+        setTodoList(KanBanColumnData.todoList);
+        setOngoingList(KanBanColumnData.ongoingList);
+        setDoneList(KanBanColumnData.doneList);
+      }
+      setIsLoading(false);
+    }, 1000);
+  }, []);
 
   const handleSubmit = (title: string) => {
     setTodoList([{ title, status: new Date().toDateString() }, ...todoList]);
@@ -200,41 +224,61 @@ const App: React.FC = () => {
     todo: "#C9AF97",
     ongoing: "#FFE799",
     done: "#C0E88A",
+    loading: "#E3E3E3",
   };
 
+  // 实际业务中，涉及到本地数据与远程数据的同步，逻辑非常复杂；这里偷懒，增加一个保存所有卡片的按钮，由用户决定什么时候存储
+  function handleSaveAll() {
+    const data = JSON.stringify({
+      todoList,
+      ongoingList,
+      doneList,
+    });
+    window.localStorage.setItem(DATA_STORE_KEY, data);
+  }
   return (
     <div className="App">
       <header className="App-header">
-        <h1>我的看板</h1>
+        <h1>
+          我的看板 <button onClick={handleSaveAll}>保存所有卡片</button>
+        </h1>
         <img src={logo} className="App-logo" alt="logo" />
       </header>
       <KanBanBoard>
-        <KanBanColumn
-          bgColor={COLUMN_BG_COLORS.todo}
-          title={
-            <>
-              待处理
-              <button onClick={() => setShowAdd(!showAdd)}>
-                &#8853; 添加新卡片
-              </button>
-            </>
-          }
-        >
-          {showAdd && <KanbanNewCard onSubmit={handleSubmit} />}
-          {todoList.map((card, index) => (
-            <KanbanCard key={index} {...card} />
-          ))}
-        </KanBanColumn>
-        <KanBanColumn bgColor={COLUMN_BG_COLORS.ongoing} title={"进行中"}>
-          {ongoingList.map((card, index) => (
-            <KanbanCard key={index} {...card} />
-          ))}
-        </KanBanColumn>
-        <KanBanColumn bgColor={COLUMN_BG_COLORS.done} title={"已完成"}>
-          {doneList.map((card, index) => (
-            <KanbanCard key={index} {...card} />
-          ))}
-        </KanBanColumn>
+        {isLoading ? (
+          <KanBanColumn title={"读取中..."} bgColor={COLUMN_BG_COLORS.loading}>
+            正在玩命加载啦...................
+          </KanBanColumn>
+        ) : (
+          <>
+            <KanBanColumn
+              bgColor={COLUMN_BG_COLORS.todo}
+              title={
+                <>
+                  待处理
+                  <button onClick={() => setShowAdd(!showAdd)}>
+                    &#8853; 添加新卡片
+                  </button>
+                </>
+              }
+            >
+              {showAdd && <KanbanNewCard onSubmit={handleSubmit} />}
+              {todoList.map((card, index) => (
+                <KanbanCard key={index} {...card} />
+              ))}
+            </KanBanColumn>
+            <KanBanColumn bgColor={COLUMN_BG_COLORS.ongoing} title={"进行中"}>
+              {ongoingList.map((card, index) => (
+                <KanbanCard key={index} {...card} />
+              ))}
+            </KanBanColumn>
+            <KanBanColumn bgColor={COLUMN_BG_COLORS.done} title={"已完成"}>
+              {doneList.map((card, index) => (
+                <KanbanCard key={index} {...card} />
+              ))}
+            </KanBanColumn>
+          </>
+        )}
       </KanBanBoard>
     </div>
   );

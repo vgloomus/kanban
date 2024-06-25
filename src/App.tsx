@@ -8,6 +8,7 @@ import logo from "./logo.svg";
 interface Card {
   title: string;
   status: string;
+  onDragStart?: any;
 }
 
 interface KanbanNewCardProps {
@@ -42,7 +43,12 @@ const UPDATE_INTERVAL = MINUTE;
 
 const DATA_STORE_KEY = "kanban-data-store";
 
-const KanbanCard: React.FC<Card> = ({ title, status }) => {
+//拖拽相关的枚举
+const COLUMN_KEY_TODO = "todo";
+const COLUMN_KEY_ONGOING = "ongoing";
+const COLUMN_KEY_DONE = "done";
+
+const KanbanCard: React.FC<Card> = ({ title, status, onDragStart }) => {
   const [displayTime, setDisplayTime] = useState(status);
   const intervalId = setInterval(updateDisplayTime, UPDATE_INTERVAL);
 
@@ -60,6 +66,14 @@ const KanbanCard: React.FC<Card> = ({ title, status }) => {
     setDisplayTime(relativeTime);
   }
 
+  function handleDragStart(e) {
+    // 设置拖拽操作效果 表示被拖动的数据可以被移动到新位置
+    e.dataTransfer.effectAllowed = "move";
+    // 将要拖动的数据设置为文本类型，并传递拖动元素的标题
+    e.dataTransfer.setData("text/plain", title);
+    onDragStart && onDragStart(e);
+  }
+
   useEffect(() => {
     // 在组件首次加载时会调用，并且每分钟一次设置到displayTime上
     updateDisplayTime();
@@ -68,7 +82,7 @@ const KanbanCard: React.FC<Card> = ({ title, status }) => {
   }, [status]);
 
   return (
-    <li css={kanbanCardStyles}>
+    <li css={kanbanCardStyles} draggable onDragStart={handleDragStart}>
       <div css={kanbanCardTitleStyles}>{title}</div>
       <div
         css={css`
@@ -142,6 +156,10 @@ const App: React.FC = () => {
     { title: "测试任务-1", status: "2022-05-22 18:15" },
   ]);
   const [isLoading, setIsLoading] = useState(true);
+  // 拖拽相关的state
+  const [draggedItem, setDraggedItem] = useState<Card | null>(null);
+  const [dragSource, setDragSource] = useState<string | null>(null);
+  const [dragTarget, setDragTarget] = useState<string | null>(null);
 
   // 读取远程数据，使用浏览器内置的 `localStorage` 本地存储API代替远程服务
   useEffect(() => {
@@ -158,10 +176,35 @@ const App: React.FC = () => {
     }, 1000);
   }, []);
 
-  const handleSubmit = (title: string) => {
+  function handleSubmit(title: string) {
     setTodoList([{ title, status: new Date().toDateString() }, ...todoList]);
     setShowAdd(false);
-  };
+  }
+
+  function handleDrop(evt) {
+    if (
+      !draggedItem ||
+      !dragSource ||
+      !dragTarget ||
+      dragSource === dragTarget
+    ) {
+      return;
+    }
+    // 三个数组的更新函数套了一个索引对象,setTodoList == updaters[COLUMN_KEY_TODO] == updaters["todo"]
+    const updaters = {
+      [COLUMN_KEY_TODO]: setTodoList,
+      [COLUMN_KEY_ONGOING]: setOngoingList,
+      [COLUMN_KEY_DONE]: setDoneList,
+    };
+    if (dragSource) {
+      updaters[dragSource]((currentStat) =>
+        currentStat.filter((item) => !Object.is(item, draggedItem)),
+      );
+    }
+    if (dragTarget) {
+      updaters[dragTarget]((currentStat) => [draggedItem, ...currentStat]);
+    }
+  }
 
   const KanBanBoard = ({ children }) => (
     <main
@@ -177,9 +220,36 @@ const App: React.FC = () => {
     </main>
   );
 
-  const KanBanColumn = ({ children, bgColor, title }) => {
+  const KanBanColumn = ({
+    children,
+    bgColor,
+    title,
+    setIsDragSource = (a: Boolean) => {},
+    setIsDragTarget = (b: Boolean) => {},
+    onDrop,
+  }) => {
     return (
       <section
+        onDragStart={() => setIsDragSource(true)}
+        onDragOver={(evt) => {
+          evt.preventDefault();
+          evt.dataTransfer.dropEffect = "move";
+          setIsDragTarget(true);
+        }}
+        onDragLeave={(evt) => {
+          evt.preventDefault();
+          evt.dataTransfer.dropEffect = "none";
+          setIsDragTarget(false);
+        }}
+        onDrop={(evt) => {
+          evt.preventDefault();
+          onDrop && onDrop(evt);
+        }}
+        onDragEnd={(evt) => {
+          evt.preventDefault();
+          setIsDragSource(false);
+          setIsDragTarget(false);
+        }}
         css={css`
           display: flex;
           flex: 1 1;
@@ -236,6 +306,7 @@ const App: React.FC = () => {
     });
     window.localStorage.setItem(DATA_STORE_KEY, data);
   }
+
   return (
     <div className="App">
       <header className="App-header">
@@ -246,9 +317,7 @@ const App: React.FC = () => {
       </header>
       <KanBanBoard>
         {isLoading ? (
-          <KanBanColumn title={"读取中..."} bgColor={COLUMN_BG_COLORS.loading}>
-            正在玩命加载啦...................
-          </KanBanColumn>
+          <div>加载中..............</div>
         ) : (
           <>
             <KanBanColumn
@@ -261,20 +330,66 @@ const App: React.FC = () => {
                   </button>
                 </>
               }
+              setIsDragSource={(isSrc) =>
+                setDragSource(isSrc ? COLUMN_KEY_TODO : null)
+              }
+              setIsDragTarget={(isTgt) =>
+                setDragTarget(isTgt ? COLUMN_KEY_TODO : null)
+              }
+              onDrop={handleDrop}
             >
               {showAdd && <KanbanNewCard onSubmit={handleSubmit} />}
-              {todoList.map((card, index) => (
-                <KanbanCard key={index} {...card} />
+              {todoList.map((item, index) => (
+                <KanbanCard
+                  key={index}
+                  // 将当前拖动的item对象设置为draggedItem状态的新值，这样就能拖动当前列表里面的卡片
+                  onDragStart={() => {
+                    setDraggedItem(item);
+                  }}
+                  {...item}
+                />
               ))}
             </KanBanColumn>
-            <KanBanColumn bgColor={COLUMN_BG_COLORS.ongoing} title={"进行中"}>
-              {ongoingList.map((card, index) => (
-                <KanbanCard key={index} {...card} />
+            <KanBanColumn
+              bgColor={COLUMN_BG_COLORS.ongoing}
+              title={"进行中"}
+              setIsDragSource={(isDragSource) =>
+                setDragSource(isDragSource ? COLUMN_KEY_ONGOING : null)
+              }
+              setIsDragTarget={(isDragTarget) =>
+                setDragTarget(isDragTarget ? COLUMN_KEY_ONGOING : null)
+              }
+              onDrop={handleDrop}
+            >
+              {ongoingList.map((item, index) => (
+                <KanbanCard
+                  key={index}
+                  onDragStart={() => {
+                    setDraggedItem(item);
+                  }}
+                  {...item}
+                />
               ))}
             </KanBanColumn>
-            <KanBanColumn bgColor={COLUMN_BG_COLORS.done} title={"已完成"}>
-              {doneList.map((card, index) => (
-                <KanbanCard key={index} {...card} />
+            <KanBanColumn
+              bgColor={COLUMN_BG_COLORS.done}
+              title={"已完成"}
+              setIsDragSource={(isDragSource) =>
+                setDragSource(isDragSource ? COLUMN_KEY_DONE : null)
+              }
+              setIsDragTarget={(isDragTarget) =>
+                setDragTarget(isDragTarget ? COLUMN_KEY_DONE : null)
+              }
+              onDrop={handleDrop}
+            >
+              {doneList.map((item, index) => (
+                <KanbanCard
+                  key={index}
+                  onDragStart={() => {
+                    setDraggedItem(item);
+                  }}
+                  {...item}
+                />
               ))}
             </KanBanColumn>
           </>

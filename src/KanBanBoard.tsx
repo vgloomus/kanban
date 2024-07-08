@@ -102,6 +102,7 @@ export default function KanBanBoard({
             onDrop={handleDrop}
             setDraggedItem={setDraggedItem}
             cardList={doneList}
+            onRemove={onRemove.bind(null, COLUMN_KEY_DONE)}
           ></KanBanColumn>
         </>
       )}

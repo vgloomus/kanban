@@ -8,6 +8,7 @@ import KanBanBoard, {
   COLUMN_KEY_ONGOING,
   COLUMN_KEY_DONE,
 } from "./KanBanBoard.tsx";
+import AdminContext from "./context/AdminContext.tsx";
 interface Card {
   title: string;
   status: string;
@@ -61,8 +62,14 @@ const App: React.FC = () => {
 
   function handleRemove(column, cardToRemove) {
     updaters[column]((currentStat) =>
-      currentStat.filter((item) => !Object.is(item, cardToRemove)),
+      currentStat.filter((item) => item.title !== cardToRemove.title),
     );
+  }
+
+  // 新增管理员模式
+  const [isAdmin, setIsAdmin] = useState(false);
+  function handleToggleAdmin(evt) {
+    setIsAdmin(!isAdmin);
   }
   // 实际业务中，涉及到本地数据与远程数据的同步，逻辑非常复杂；这里偷懒，增加一个保存所有卡片的按钮，由用户决定什么时候存储
   function handleSaveAll() {
@@ -79,17 +86,29 @@ const App: React.FC = () => {
       <header className="App-header">
         <h1>
           我的看板 <button onClick={handleSaveAll}>保存所有卡片</button>
+          <label>
+            <input
+              type="checkbox"
+              value="isAdmin"
+              checked={isAdmin}
+              onChange={handleToggleAdmin}
+            />
+            管理员模式
+          </label>
         </h1>
+
         <img src={logo} className="App-logo" alt="logo" />
       </header>
-      <KanBanBoard
-        isLoading={isLoading}
-        todoList={todoList}
-        ongoingList={ongoingList}
-        doneList={doneList}
-        onAdd={handleAdd}
-        onRemove={handleRemove}
-      />
+      <AdminContext.Provider value={isAdmin}>
+        <KanBanBoard
+          isLoading={isLoading}
+          todoList={todoList}
+          ongoingList={ongoingList}
+          doneList={doneList}
+          onAdd={handleAdd}
+          onRemove={handleRemove}
+        />
+      </AdminContext.Provider>
     </div>
   );
 };

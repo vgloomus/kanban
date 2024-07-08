@@ -22,6 +22,7 @@ export default function KanBanColumn({
   onDrop,
   canAddNew = false,
   onAdd,
+  onRemove,
 }) {
   const [showAdd, setShowAdd] = useState(false);
 
@@ -107,6 +108,7 @@ export default function KanBanColumn({
               key={props.title}
               onDragStart={() => setDraggedItem && setDraggedItem(props)}
               {...props}
+              onRemove={onRemove}
             />
           ))}
         </>

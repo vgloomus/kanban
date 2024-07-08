@@ -1,11 +1,14 @@
 /** @jsxImportSource @emotion/react */
-import React, { useEffect, useState } from "react";
+import React, { useContext, useEffect, useState } from "react";
 import { css } from "@emotion/react";
+
+import AdminContext from "./context/AdminContext.tsx";
 
 interface Card {
   title: string;
   status: string;
   onDragStart?: any;
+  onRemove: any;
 }
 
 // 看板创建时间自动更新
@@ -34,9 +37,17 @@ export const kanbanCardTitleStyles = css`
   min-height: 3rem;
 `;
 
-const KanBanCard: React.FC<Card> = ({ title, status, onDragStart }) => {
+const KanBanCard: React.FC<Card> = ({
+  title,
+  status,
+  onDragStart,
+  onRemove,
+}) => {
   const [displayTime, setDisplayTime] = useState(status);
   const intervalId = setInterval(updateDisplayTime, UPDATE_INTERVAL);
+
+  // 新增管理员模式
+  const isAdmin = useContext(AdminContext);
 
   // 更新时间
   function updateDisplayTime() {
@@ -78,6 +89,9 @@ const KanBanCard: React.FC<Card> = ({ title, status, onDragStart }) => {
         `}
       >
         {displayTime}
+        {isAdmin && onRemove && (
+          <button onClick={() => onRemove({ title })}>X</button>
+        )}
       </div>
     </li>
   );
